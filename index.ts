@@ -17,7 +17,7 @@ function code(code: string, filename: string) {
 const main = code(
     `\
 let x = [1, 2, 3];
-console.log(x.map(n => n * 2));
+console.log((x).map(n => n * 2));
 x.
 
 let y = x();
@@ -137,7 +137,45 @@ const completions = languageService.getCompletionsAtPosition(
 );
 
 if (completions && completions.entries.length > 0) {
+    function findRelevantNode(
+        node: ts.Node,
+        position: number,
+    ): ts.Node | undefined {
+        let foundNode: ts.Node | undefined;
+
+        node.forEachChild((child) => {
+            const childStart = child.getStart();
+            const childEnd = child.getEnd();
+
+            console.log(
+                `Checking node: ${child.kind} [${childStart}, ${childEnd}] - ${child.getText().slice(0, 10)}...`,
+            );
+
+            if (position >= childStart && position < childEnd) {
+                if (
+                    ts.isPropertyAccessExpression(child) ||
+                    ts.isIdentifier(child)
+                ) {
+                    console.log(
+                        `Found PropertyAccessExpression or Identifier: ${child.getText()}`,
+                    );
+                    foundNode = child;
+                } else {
+                    foundNode = findRelevantNode(child, position);
+                }
+            }
+        });
+
+        return foundNode;
+    }
+
     const typeChecker = program.getTypeChecker();
+
+    console.log("Position:", position);
+    console.log(
+        "Code around position:",
+        main.text.slice(position - 10, position + 10),
+    );
 
     completions.entries.forEach((entry) => {
         if (
@@ -156,7 +194,54 @@ if (completions && completions.entries.length > 0) {
 
             if (details) {
                 console.log(`Function: ${entry.name}`);
-                const sourceFile = program.getSourceFile("main.js");
+
+                // Find the node at the completion position
+                const node = findRelevantNode(main, position);
+
+                if (node) {
+                    console.log("Found node: ", node.getText()); // Debugging output
+
+                    // Get symbol at the node's location
+                    const symbol = typeChecker.getSymbolAtLocation(node);
+
+                    if (symbol) {
+                        // Get the type of the symbol (function)
+                        const type = typeChecker.getTypeOfSymbolAtLocation(
+                            symbol,
+                            node,
+                        );
+
+                        // Get the return type of the function
+                        const signatures = type.getCallSignatures();
+                        if (signatures.length > 0) {
+                            const returnType =
+                                typeChecker.getReturnTypeOfSignature(
+                                    signatures[0],
+                                );
+                            console.log(
+                                `Return Type: ${typeChecker.typeToString(returnType)}`,
+                            );
+
+                            // Get parameters and their types
+                            signatures[0].parameters.forEach((param) => {
+                                const paramType =
+                                    typeChecker.getTypeOfSymbolAtLocation(
+                                        param,
+                                        param.valueDeclaration,
+                                    );
+                                console.log(
+                                    `Parameter: ${param.name}, Type: ${typeChecker.typeToString(paramType)}`,
+                                );
+                            });
+                        }
+                    } else {
+                        console.log("Symbol not found at the specified node.");
+                    }
+                } else {
+                    console.log(
+                        "Relevant node not found at the specified position.",
+                    );
+                }
 
                 if (details.documentation) {
                     console.log(
