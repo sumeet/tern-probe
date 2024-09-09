@@ -1,7 +1,7 @@
 import * as ts from "typescript";
 import * as fs from "node:fs";
 
-const codes = [];
+const codes = [] as ts.SourceFile[];
 
 function code(code: string, filename: string) {
     const sourceFile = ts.createSourceFile(
