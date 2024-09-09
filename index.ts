@@ -133,49 +133,86 @@ const position = main.getText().lastIndexOf("x.") + 2;
 const completions = languageService.getCompletionsAtPosition(
     "main.js",
     position,
-    {},
+    {includeSymbol: true},
 );
 
 if (completions && completions.entries.length > 0) {
     const typeChecker = program.getTypeChecker();
 
-    completions.entries.forEach((entry) => {
-        if (
-            entry.kind === ts.ScriptElementKind.functionElement ||
-            entry.kind === ts.ScriptElementKind.memberFunctionElement
-        ) {
-            const details = languageService.getCompletionEntryDetails(
-                "main.js",
-                position,
-                entry.name,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-            );
+    // completions.entries.forEach((entry) => {
+    //     if (
+    //         entry.kind === ts.ScriptElementKind.functionElement ||
+    //         entry.kind === ts.ScriptElementKind.memberFunctionElement
+    //     ) {
+    //     }
+    // });
 
-            if (details) {
-                console.log(`Function: ${entry.name}`);
-                const sourceFile = program.getSourceFile("main.js");
-
-                if (details.documentation) {
-                    console.log(
-                        `Documentation: ${ts.displayPartsToString(details.documentation)}`,
-                    );
-                } else {
-                    console.log("No documentation found.");
-                }
-
-                if (details.tags) {
-                    for (const tag of details.tags) {
-                        console.log(`Tag`, tag);
-                    }
-                } else {
-                    console.log("No tags found.");
-                }
-            }
+    for (const completion of completions.entries) {
+        console.log(`Completion: ${completion.name}`);
+        const symbol = completion.symbol;
+        if (symbol && symbol.valueDeclaration) {
+            const symbolType = typeChecker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration);
+            const typeString = typeChecker.typeToString(symbolType, undefined, ts.TypeFormatFlags.OmitThisParameter);
+            console.log(`Type: ${typeString}`);
         }
-    });
+    }
 } else {
     console.log("No completions found.");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function x() {
+            // const details = languageService.getCompletionEntryDetails(
+            //     "main.js",
+            //     position,
+            //     entry.name,
+            //     undefined,
+            //     undefined,
+            //     undefined,
+            //     undefined,
+            // );
+
+            // if (details) {
+            //     console.log(`Function: ${entry.name}`);
+            //     const sourceFile = program.getSourceFile("main.js");
+
+            //     if (details.documentation) {
+            //         console.log(
+            //             `Documentation: ${ts.displayPartsToString(details.documentation)}`,
+            //         );
+            //     } else {
+            //         console.log("No documentation found.");
+            //     }
+
+            //     if (details.tags) {
+            //         for (const tag of details.tags) {
+            //             console.log(`Tag`, tag);
+            //         }
+            //     } else {
+            //         console.log("No tags found.");
+            //     }
+            // }
 }
